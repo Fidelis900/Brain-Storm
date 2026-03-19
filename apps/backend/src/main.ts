@@ -10,7 +10,7 @@ async function bootstrap() {
   app.enableCors();
 
   const config = new DocumentBuilder()
-    .setTitle('BlueCollar API')
+    .setTitle('Brain-Storm API')
     .setDescription('Blockchain education platform API powered by Stellar')
     .setVersion('1.0')
     .addBearerAuth()
@@ -18,6 +18,6 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config));
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`BlueCollar API running on port ${process.env.PORT ?? 3000}`);
+  console.log(`Brain-Storm API running on port ${process.env.PORT ?? 3000}`);
 }
 bootstrap();

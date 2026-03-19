@@ -1,4 +1,4 @@
-# BlueCollar
+# Brain-Storm
 
 > A blockchain education platform built on the **Stellar network**, delivering verifiable on-chain credentials and token-based learning incentives.
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-BlueCollar is a full-stack, monorepo education platform that leverages the Stellar blockchain to issue tamper-proof credentials when learners complete courses. It is a rebranded and extended fork of the StrellerMinds project by [StarkMindsHQ](https://github.com/StarkMindsHQ), adapted for a broader blue-collar and vocational training audience.
+Brain-Storm is a full-stack, monorepo education platform that leverages the Stellar blockchain to issue tamper-proof credentials when learners complete courses. It is a rebranded and extended fork of the StrellerMinds project by [StarkMindsHQ](https://github.com/StarkMindsHQ), adapted for a broader brain-storm and vocational training audience.
 
 The platform combines a modern web frontend, a scalable REST API backend, and a suite of Soroban smart contracts — all living in a single monorepo for streamlined development and deployment.
 
@@ -15,7 +15,7 @@ The platform combines a modern web frontend, a scalable REST API backend, and a 
 ## Monorepo Structure
 
 ```
-bluecollar/
+brain-storm/
 ├── apps/
 │   ├── frontend/          # Next.js 14 web application (TypeScript)
 │   └── backend/           # NestJS REST API (TypeScript)
@@ -71,7 +71,7 @@ bluecollar/
 ### Platform
 - **Course Management** — Browse, enroll in, and complete structured blockchain courses
 - **On-Chain Credentials** — Certificates issued as Stellar transactions upon course completion
-- **Token Rewards** — Earn BlueCollar tokens (BCT) for completing modules and courses
+- **Token Rewards** — Earn Brain-Storm tokens (BST) for completing modules and courses
 - **Progress Tracking** — Real-time on-chain progress stored via the Analytics contract
 - **Role-Based Access** — Admin, Instructor, and Student roles enforced on-chain via RBAC
 
@@ -105,8 +105,8 @@ bluecollar/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/bluecollar.git
-cd bluecollar
+git clone https://github.com/your-org/brain-storm.git
+cd brain-storm
 ```
 
 ### 2. Set up environment variables
@@ -170,7 +170,7 @@ See `.env.example` for the full list. Key variables:
 | Variable | Description |
 |---|---|
 | `DATABASE_HOST` | PostgreSQL host |
-| `DATABASE_NAME` | Database name (default: `bluecollar`) |
+| `DATABASE_NAME` | Database name (default: `brain-storm`) |
 | `JWT_SECRET` | Secret for signing JWT tokens |
 | `STELLAR_SECRET_KEY` | Stellar account secret for credential issuance |
 | `STELLAR_NETWORK` | `testnet` or `mainnet` |

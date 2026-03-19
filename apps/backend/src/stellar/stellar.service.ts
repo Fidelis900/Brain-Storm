@@ -30,7 +30,7 @@ export class StellarService {
     })
       .addOperation(
         Operation.manageData({
-          name: `bluecollar:credential:${courseId}`,
+          name: `brain-storm:credential:${courseId}`,
           value: recipientPublicKey,
         }),
       )

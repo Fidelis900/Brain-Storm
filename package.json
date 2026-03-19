@@ -1,8 +1,8 @@
 {
-  "name": "bluecollar",
+  "name": "brain-storm",
   "version": "1.0.0",
   "private": true,
-  "description": "BlueCollar - Blockchain Education Platform on Stellar",
+  "description": "Brain-Storm - Blockchain Education Platform on Stellar",
   "workspaces": [
     "apps/frontend",
     "apps/backend"

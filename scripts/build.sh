@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Building BlueCollar smart contracts..."
+echo "Building Brain-Storm smart contracts..."
 cargo build --release --target wasm32-unknown-unknown
 
 echo "Build complete. WASM files:"

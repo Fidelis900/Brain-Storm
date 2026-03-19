@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'BlueCollar - Blockchain Education on Stellar',
+  title: 'Brain-Storm - Blockchain Education on Stellar',
   description:
     'Learn blockchain development with verifiable on-chain credentials powered by the Stellar network.',
 };
