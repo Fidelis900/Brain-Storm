@@ -5,6 +5,8 @@ import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject } from '@nestjs/common';
 import { Course } from './course.entity';
+import { CreateCourseDto } from './dto/create-course.dto';
+import { UpdateCourseDto } from './dto/update-course.dto';
 
 @Injectable()
 export class CoursesService {
@@ -26,8 +28,10 @@ export class CoursesService {
     return courses;
   }
 
-  findOne(id: string) {
-    return this.repo.findOne({ where: { id } });
+  async findOne(id: string): Promise<Course> {
+    const course = await this.repo.findOne({ where: { id, isDeleted: false } });
+    if (!course) throw new NotFoundException('Course not found');
+    return course;
   }
 
   async create(data: Partial<Course>) {
