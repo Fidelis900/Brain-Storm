@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from './toast';
+import { useAuthStore } from '@/store/auth.store';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
@@ -7,7 +8,9 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  if (typeof window === 'undefined') return config;
+  // Read token from the persisted Zustand store (falls back gracefully if not hydrated yet)
+  const token = useAuthStore.getState().token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -20,7 +23,7 @@ api.interceptors.response.use(
     const status = error?.response?.status;
 
     if (status === 401) {
-      localStorage.removeItem('token');
+      useAuthStore.getState().logout();
       window.location.href = '/login';
       return Promise.reject(error);
     }
@@ -31,7 +34,6 @@ api.interceptors.response.use(
       error?.message ??
       'An unexpected error occurred.';
 
-    // Don't double-toast for errors callers handle themselves (they can catch before this runs)
     toast.error(typeof message === 'string' ? message : JSON.stringify(message));
 
     return Promise.reject(error);
