@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   Horizon,
   Keypair,
@@ -24,8 +26,12 @@ export class StellarService {
   private analyticsContractId: string;
   private tokenContractId: string;
 
-  constructor(private configService: ConfigService) {
-    const isTestnet = this.configService.get('STELLAR_NETWORK') !== 'mainnet';
+  constructor(
+    private configService: ConfigService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {
+    const isTestnet = this.configService.get<string>('stellar.network') !== 'mainnet';
+    this.network = isTestnet ? 'testnet' : 'mainnet';
     this.networkPassphrase = isTestnet ? Networks.TESTNET : Networks.PUBLIC;
 
     this.server = new Horizon.Server(
@@ -33,16 +39,11 @@ export class StellarService {
         ? 'https://horizon-testnet.stellar.org'
         : 'https://horizon.stellar.org',
     );
-
-    const rpcUrl =
-      this.configService.get('SOROBAN_RPC_URL') ||
-      'https://soroban-testnet.stellar.org';
+    
+    const rpcUrl = this.configService.get<string>('stellar.sorobanRpcUrl');
     this.sorobanServer = new SorobanRpc.Server(rpcUrl);
-
-    this.analyticsContractId =
-      this.configService.get('ANALYTICS_CONTRACT_ID') || '';
-    this.tokenContractId =
-      this.configService.get('TOKEN_CONTRACT_ID') || '';
+    
+    this.contractId = this.configService.get<string>('stellar.contractId');
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
@@ -52,34 +53,33 @@ export class StellarService {
     return account.balances;
   }
 
-  /** Record progress on the Analytics Soroban contract */
-  async recordProgress(
-    studentPublicKey: string,
-    courseId: string,
-    progressPct: number,
-  ): Promise<string> {
-    if (!this.analyticsContractId) {
-      throw new Error('ANALYTICS_CONTRACT_ID not configured');
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    attempt: number = 1,
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt >= MAX_RETRIES) {
+        this.logger.error(`Max retries reached: ${error.message}`);
+        throw error;
+      }
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      this.logger.warn(`Attempt ${attempt} failed, retrying in ${delay}ms: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return this.retryWithBackoff(fn, attempt + 1);
     }
-    return this.retryWithBackoff(() =>
-      this.invokeContract(this.analyticsContractId, 'record_progress', [
-        new Address(studentPublicKey).toScVal(),
-        nativeToScVal(courseId, { type: 'symbol' }),
-        nativeToScVal(progressPct, { type: 'u32' }),
-      ]),
-    );
   }
 
-  /** Issue a credential via Horizon manageData (with Soroban record_progress fallback) */
-  async issueCredential(
-    recipientPublicKey: string,
-    courseId: string,
-  ): Promise<string> {
+  async issueCredential(recipientPublicKey: string, courseId: string): Promise<string> {
     try {
-      await this.recordProgress(recipientPublicKey, courseId, 100);
-    } catch (err) {
-      this.logger.warn(`Soroban record_progress failed, continuing: ${err.message}`);
+      await this.retryWithBackoff(() => this.recordProgressOnChain(recipientPublicKey, courseId));
+      this.logger.log(`Progress recorded on Soroban for ${courseId}`);
+    } catch (error) {
+      this.logger.error(`Failed to record progress on Soroban: ${error.message}, falling back to Horizon`);
+      await this.issueCredentialFallback(recipientPublicKey, courseId);
     }
+    
     return this.mintCredentialViaHorizon(recipientPublicKey, courseId);
   }
 
@@ -99,17 +99,41 @@ export class StellarService {
     );
   }
 
-  /** Verify a credential by looking up the tx hash on Horizon */
-  async verifyCredential(txHash: string): Promise<{ verified: boolean; details: any }> {
-    try {
-      const tx = await this.server.transactions().transaction(txHash).call();
-      return { verified: true, details: tx };
-    } catch {
-      return { verified: false, details: null };
+    const issuerKeypair = Keypair.fromSecret(this.configService.get<string>('stellar.secretKey'));
+    const studentKeypair = Keypair.fromPublicKey(studentPublicKey);
+    
+    const source = await this.sorobanServer.getAccount(issuerKeypair.publicKey());
+    
+    const tx = new SorobanRpc.TransactionBuilder(source, {
+      fee: BASE_FEE.toString(),
+      networkPassphrase: this.networkPassphrase,
+    })
+      .setTimeout(30)
+      .appendOperation(
+        new SorobanRpc.InvokeContractOperation({
+          contract: this.contractId,
+          method: 'record_progress',
+          args: [
+            new SorobanRpc.Address(studentKeypair.publicKey()).toScVal(),
+            new SorobanRpc.Symbol(courseId).toScVal(),
+            SorobanRpc.xdr.Int32.of(100).toScVal(),
+          ],
+        }),
+      )
+      .build();
+
+    const preparedTx = await this.sorobanServer.prepareTransaction(tx);
+    preparedTx.sign(issuerKeypair);
+    const result = await this.sorobanServer.sendTransaction(preparedTx);
+    
+    if (SorobanRpc.TxFailed(result)) {
+      throw new Error(`Soroban contract call failed: ${result.hash}`);
     }
   }
 
-  // ── Private helpers ───────────────────────────────────────────────────────
+  private async issueCredentialFallback(recipientPublicKey: string, courseId: string): Promise<string> {
+    const issuerKeypair = Keypair.fromSecret(this.configService.get<string>('stellar.secretKey'));
+    const issuerAccount = await this.server.loadAccount(issuerKeypair.publicKey());
 
   private async invokeContract(
     contractId: string,
@@ -142,13 +166,8 @@ export class StellarService {
     return result.hash;
   }
 
-  private async mintCredentialViaHorizon(
-    recipientPublicKey: string,
-    courseId: string,
-  ): Promise<string> {
-    const issuerKeypair = Keypair.fromSecret(
-      this.configService.get('STELLAR_SECRET_KEY')!,
-    );
+  private async mintCredentialViaHorizon(recipientPublicKey: string, courseId: string): Promise<string> {
+    const issuerKeypair = Keypair.fromSecret(this.configService.get<string>('stellar.secretKey'));
     const issuerAccount = await this.server.loadAccount(issuerKeypair.publicKey());
 
     const tx = new TransactionBuilder(issuerAccount, {

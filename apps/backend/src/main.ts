@@ -1,13 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+
+  const port = configService.get<number>('port');
+  const nodeEnv = configService.get<string>('nodeEnv');
 
   // Use Winston logger as the default logger
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
@@ -25,11 +31,7 @@ async function bootstrap() {
     .build();
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config));
 
-  const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  
-  // Use the Winston logger instead of console.log
-  const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
-  logger.log(`Brain-Storm API running on port ${port}`, 'Bootstrap');
+  logger.log(`Brain-Storm API running on port ${port} [${nodeEnv}]`);
 }
 bootstrap();
