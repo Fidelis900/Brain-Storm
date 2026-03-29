@@ -93,6 +93,33 @@ redis-server --daemonize yes
 
 3. Copy the secret key into `STELLAR_SECRET_KEY` in your `.env`.
 
+### Re-funding an existing account
+
+Testnet accounts are reset periodically. To re-fund the account configured in `.env`:
+
+```bash
+./scripts/fund-testnet.sh
+```
+
+The script reads `STELLAR_SECRET_KEY` from `.env`, derives the public key, and calls Friendbot automatically.
+
+### API endpoint (testnet only)
+
+When `STELLAR_NETWORK=testnet`, the backend exposes a funding endpoint:
+
+```
+POST /v1/stellar/fund-testnet
+Content-Type: application/json
+
+{ "publicKey": "G..." }
+```
+
+This is disabled (returns 400) when `STELLAR_NETWORK=mainnet`.
+
+### Profile page
+
+On the profile page, a **Fund Testnet Account** button appears in the wallet section whenever `NEXT_PUBLIC_STELLAR_NETWORK=testnet`. Clicking it calls the endpoint above for the linked wallet address.
+
 ---
 
 ## 4. Install Dependencies & Build Contracts

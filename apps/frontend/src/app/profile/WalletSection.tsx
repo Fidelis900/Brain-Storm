@@ -15,6 +15,8 @@ export default function WalletSection({ userId, stellarPublicKey, onLinked, onUn
   const [bstBalance, setBstBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [freighterMissing, setFreighterMissing] = useState(false);
+  const [funding, setFunding] = useState(false);
+  const [fundMessage, setFundMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (stellarPublicKey) {
@@ -49,6 +51,20 @@ export default function WalletSection({ userId, stellarPublicKey, onLinked, onUn
     onUnlinked();
   };
 
+  const fundTestnet = async () => {
+    if (!stellarPublicKey) return;
+    setFunding(true);
+    setFundMessage(null);
+    try {
+      await api.post('/stellar/fund-testnet', { publicKey: stellarPublicKey });
+      setFundMessage('Account funded successfully!');
+    } catch {
+      setFundMessage('Funding failed. Try again.');
+    } finally {
+      setFunding(false);
+    }
+  };
+
   return (
     <div className="border rounded-lg p-6 space-y-4">
       <h2 className="text-lg font-semibold">Stellar Wallet</h2>
@@ -63,6 +79,14 @@ export default function WalletSection({ userId, stellarPublicKey, onLinked, onUn
             <p className="text-sm">BST Balance: <span className="font-semibold">{bstBalance} BST</span></p>
           )}
           <Button variant="outline" onClick={unlinkWallet}>Unlink Wallet</Button>
+          {process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'testnet' && (
+            <div className="space-y-1">
+              <Button variant="outline" onClick={fundTestnet} disabled={funding}>
+                {funding ? 'Funding…' : 'Fund Testnet Account'}
+              </Button>
+              {fundMessage && <p className="text-sm text-gray-600">{fundMessage}</p>}
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

@@ -29,6 +29,14 @@ export class StellarController {
     return this.stellarService.getAccountBalance(publicKey);
   }
 
+  @Post('fund-testnet')
+  @ApiOperation({ summary: 'Fund a testnet account via Friendbot (testnet only)' })
+  @ApiResponse({ status: 201, description: 'Account funded successfully' })
+  @ApiResponse({ status: 400, description: 'Not available on mainnet or Friendbot error' })
+  async fundTestnet(@Body() body: { publicKey: string }) {
+    return this.stellarService.fundTestnetAccount(body.publicKey);
+  }
+
   @Post('mint')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(JwtAuthGuard, RolesGuard)
