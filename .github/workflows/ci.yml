@@ -29,6 +29,8 @@ jobs:
 
       - name: Build backend
         run: npm run build --workspace=apps/backend
+        env:
+          GIT_COMMIT_SHA: ${{ github.sha }}
 
       - name: Run unit tests with coverage
         run: npx jest --coverage --passWithNoTests
@@ -125,6 +127,8 @@ jobs:
 
       - name: Build frontend
         run: npm run build --workspace=apps/frontend
+        env:
+          NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ github.sha }}
 
   chromatic-visual-tests:
     name: Frontend - Visual Regression Tests (Chromatic)
