@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 
 interface AuthUser {
@@ -21,6 +23,7 @@ type AuthAction =
   | { type: 'LOGOUT' }
   | { type: 'SET_USER'; payload: AuthUser };
 
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 const decodeJWT = (token: string) => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
@@ -42,6 +45,15 @@ const decodeJWT = (token: string) => {
       return { ...state, user: action.payload, isLoading: false };
     default:
       return state;
+  }
+};
+
+const decodeJWT = (token: string) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload;
+  } catch {
+    return null;
   }
 };
 
