@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import WalletSection from './WalletSection';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 interface User {
   id: string;
@@ -159,8 +160,8 @@ export default function ProfilePage() {
   const initial = user.username[0]?.toUpperCase() ?? '?';
 
   return (
-    <main className="max-w-2xl mx-auto p-8 space-y-8">
-      {/* Profile Header */}
+    <ProtectedRoute>
+      <main className="max-w-2xl mx-auto p-8 space-y-8">
       <div className="flex items-center gap-4">
         {user.avatarUrl ? (
           <Image
@@ -289,5 +290,6 @@ export default function ProfilePage() {
         onUnlinked={onWalletUnlinked}
       />
     </main>
+    </ProtectedRoute>
   );
 }
